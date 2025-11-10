@@ -1,0 +1,185 @@
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+using namespace std;
+
+class Room {
+public:
+    int roomNumber;
+    string roomType;
+    bool isBooked;
+    double pricePerNight;
+
+    Room() : roomNumber(0), roomType("Standard"), isBooked(false), pricePerNight(0.0) {}
+
+    void inputRoomDetails() {
+        cout << "Enter Room Number: ";
+        cin >> roomNumber;
+        cout << "Enter Room Type (Standard/Deluxe/Suite): ";
+        cin >> roomType;
+        cout << "Enter Price per Night: ";
+        cin >> pricePerNight;
+        isBooked = false;
+    }
+
+    void displayRoom() const {
+        cout << left << setw(12) << roomNumber
+             << setw(12) << roomType
+             << setw(12) << (isBooked ? "Booked" : "Available")
+             << setw(12) << pricePerNight << endl;
+    }
+
+    void saveToFile() const {
+        ofstream file("rooms.txt", ios::app);
+        file << roomNumber << " " << roomType << " " << isBooked << " " << pricePerNight << endl;
+        file.close();
+    }
+};
+
+// ==================== Customer Class ====================
+class Customer {
+public:
+    string name;
+    string phone;
+    int roomBooked;
+
+    void inputDetails() {
+        cout << "Enter Customer Name: ";
+        cin >> name;
+        cout << "Enter Phone Number: ";
+        cin >> phone;
+    }
+
+    void displayDetails() {
+        cout << "\nCustomer Name: " << name
+             << "\nPhone: " << phone
+             << "\nRoom Booked: " << roomBooked << endl;
+    }
+};
+
+// ==================== Hotel Management ====================
+class Hotel {
+public:
+    void addRoom() {
+        Room room;
+        room.inputRoomDetails();
+        room.saveToFile();
+        cout << "\n✅ Room Added Successfully!\n";
+    }
+
+    void displayRooms() {
+        ifstream file("rooms.txt");
+        if (!file) {
+            cout << "\n⚠️ No rooms found!\n";
+            return;
+        }
+
+        Room room;
+        cout << "\n========= Room List =========\n";
+        cout << left << setw(12) << "Room No" << setw(12) << "Type" << setw(12)
+             << "Status" << setw(12) << "Price" << endl;
+
+        while (file >> room.roomNumber >> room.roomType >> room.isBooked >> room.pricePerNight) {
+            room.displayRoom();
+        }
+        file.close();
+    }
+
+    void bookRoom() {
+        int rno;
+        cout << "Enter Room Number to Book: ";
+        cin >> rno;
+
+        fstream file("rooms.txt", ios::in);
+        if (!file) {
+            cout << "\n⚠️ No rooms found!\n";
+            return;
+        }
+
+        // Load all rooms
+        Room rooms[100];
+        int count = 0;
+        while (file >> rooms[count].roomNumber >> rooms[count].roomType >> rooms[count].isBooked >> rooms[count].pricePerNight) {
+            count++;
+        }
+        file.close();
+
+        bool found = false;
+        for (int i = 0; i < count; i++) {
+            if (rooms[i].roomNumber == rno) {
+                found = true;
+                if (rooms[i].isBooked) {
+                    cout << "\n❌ Room already booked!\n";
+                    return;
+                } else {
+                    Customer c;
+                    c.inputDetails();
+                    c.roomBooked = rno;
+
+                    rooms[i].isBooked = true;
+
+                    // Save customer info
+                    ofstream cf("customers.txt", ios::app);
+                    cf << c.name << " " << c.phone << " " << c.roomBooked << endl;
+                    cf.close();
+
+                    // Rewrite rooms file
+                    ofstream rf("rooms.txt");
+                    for (int j = 0; j < count; j++)
+                        rf << rooms[j].roomNumber << " " << rooms[j].roomType << " "
+                           << rooms[j].isBooked << " " << rooms[j].pricePerNight << endl;
+                    rf.close();
+
+                    cout << "\n✅ Room booked successfully for " << c.name << "!\n";
+                    return;
+                }
+            }
+        }
+
+        if (!found)
+            cout << "\n❌ Room not found!\n";
+    }
+
+    void showCustomers() {
+        ifstream cf("customers.txt");
+        if (!cf) {
+            cout << "\n⚠️ No customers found!\n";
+            return;
+        }
+
+        Customer c;
+        cout << "\n========= Customer List =========\n";
+        while (cf >> c.name >> c.phone >> c.roomBooked) {
+            cout << "\nName: " << c.name
+                 << "\nPhone: " << c.phone
+                 << "\nRoom: " << c.roomBooked << endl;
+        }
+        cf.close();
+    }
+};
+
+// ==================== Main Function ====================
+int main() {
+    Hotel h;
+    int choice;
+
+    while (true) {
+        cout << "\n===== 🏨 HOTEL MANAGEMENT MENU =====";
+        cout << "\n1. Add Room";
+        cout << "\n2. Display All Rooms";
+        cout << "\n3. Book Room";
+        cout << "\n4. Show All Customers";
+        cout << "\n5. Exit";
+        cout << "\nEnter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: h.addRoom(); break;
+            case 2: h.displayRooms(); break;
+            case 3: h.bookRoom(); break;
+            case 4: h.showCustomers(); break;
+            case 5: cout << "\n🙏 Thank you for using Hotel System!\n"; return 0;
+            default: cout << "\n❌ Invalid choice! Try again.\n";
+        }
+    }
+}
